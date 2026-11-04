@@ -33,10 +33,13 @@ HTML_TEMPLATE = """
             <label for="url">YouTube URL:</label>
             <input type="text" id="url" name="url" placeholder="https://www.youtube.com/watch?v=..." required>
             
-            <label for="format">Format:</label>
+            <label for="format">Format / Quality:</label>
             <select id="format" name="format">
-                <option value="mp4">MP4 (H.264 Video for MacBook)</option>
+                <option value="best_mp4">Best MP4 (Recommended)</option>
+                <option value="1080p">1080p MP4</option>
+                <option value="720p">720p MP4</option>
                 <option value="mp3">MP3 (Audio Only)</option>
+                <option value="m4a">M4A (High Quality Audio)</option>
             </select>
             
             <button type="submit">Download</button>
@@ -60,7 +63,6 @@ def download():
 
     tmp_dir = tempfile.mkdtemp()
     
-    # Base options with cookies.txt and robust player clients
     ydl_opts = {
         'outtmpl': os.path.join(tmp_dir, '%(title)s.%(ext)s'),
         'noplaylist': True,
@@ -71,7 +73,6 @@ def download():
         }
     }
 
-    # Attach cookies file if it exists in the root directory
     if os.path.exists("cookies.txt"):
         ydl_opts['cookiefile'] = "cookies.txt"
 
@@ -84,10 +85,23 @@ def download():
                 'preferredquality': '192',
             }],
         })
-    else:
-        # Force H.264 video and AAC audio for seamless MacBook playback
+    elif fmt == "m4a":
         ydl_opts.update({
-            'format': 'bv*[ext=mp4][vcodec^=avc1]+ba[ext=m4a]/b[ext=mp4] / bv*+ba/b',
+            'format': 'bestaudio[ext=m4a]/bestaudio/best',
+        })
+    elif fmt == "1080p":
+        ydl_opts.update({
+            'format': 'bestvideo[height<=1080][ext=mp4]+bestaudio[ext=m4a]/best[height<=1080][ext=mp4]/best',
+            'merge_output_format': 'mp4',
+        })
+    elif fmt == "720p":
+        ydl_opts.update({
+            'format': 'bestvideo[height<=720][ext=mp4]+bestaudio[ext=m4a]/best[height<=720][ext=mp4]/best',
+            'merge_output_format': 'mp4',
+        })
+    else:  # best_mp4 default fallback
+        ydl_opts.update({
+            'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
             'merge_output_format': 'mp4',
         })
 
@@ -98,11 +112,12 @@ def download():
             
             if fmt == "mp3":
                 filename = os.path.splitext(filename)[0] + ".mp3"
+            elif fmt == "m4a":
+                filename = os.path.splitext(filename)[0] + ".m4a"
             elif not filename.endswith(".mp4"):
                 filename = os.path.splitext(filename)[0] + ".mp4"
 
             if not os.path.exists(filename):
-                # Fallback search in temp dir if filename resolution varies
                 files = os.listdir(tmp_dir)
                 if files:
                     filename = os.path.join(tmp_dir, files[0])
