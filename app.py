@@ -35,11 +35,8 @@ HTML_TEMPLATE = """
             
             <label for="format">Format / Quality:</label>
             <select id="format" name="format">
-                <option value="best_mp4">Best MP4 (Recommended)</option>
-                <option value="1080p">1080p MP4</option>
-                <option value="720p">720p MP4</option>
+                <option value="mp4">MP4 Video (MacBook Compatible)</option>
                 <option value="mp3">MP3 (Audio Only)</option>
-                <option value="m4a">M4A (High Quality Audio)</option>
             </select>
             
             <button type="submit">Download</button>
@@ -76,7 +73,6 @@ def download():
     if os.path.exists("cookies.txt"):
         ydl_opts['cookiefile'] = "cookies.txt"
 
-    # Robust universal format selectors that never throw "Requested format not available"
     if fmt == "mp3":
         ydl_opts.update({
             'format': 'bestaudio/best',
@@ -86,23 +82,10 @@ def download():
                 'preferredquality': '192',
             }],
         })
-    elif fmt == "m4a":
+    else:
+        # Let yt-dlp select the best available default stream without strict format constraints
         ydl_opts.update({
-            'format': 'bestaudio[ext=m4a]/bestaudio/best',
-        })
-    elif fmt == "1080p":
-        ydl_opts.update({
-            'format': 'bestvideo[height<=1080]+bestaudio/best[height<=1080]/best',
-            'merge_output_format': 'mp4',
-        })
-    elif fmt == "720p":
-        ydl_opts.update({
-            'format': 'bestvideo[height<=720]+bestaudio/best[height<=720]/best',
-            'merge_output_format': 'mp4',
-        })
-    else:  # best_mp4 default fallback
-        ydl_opts.update({
-            'format': 'bestvideo+bestaudio/best',
+            'format': 'b',
             'merge_output_format': 'mp4',
         })
 
@@ -113,8 +96,6 @@ def download():
             
             if fmt == "mp3":
                 filename = os.path.splitext(filename)[0] + ".mp3"
-            elif fmt == "m4a":
-                filename = os.path.splitext(filename)[0] + ".m4a"
             elif not filename.endswith(".mp4"):
                 filename = os.path.splitext(filename)[0] + ".mp4"
 
