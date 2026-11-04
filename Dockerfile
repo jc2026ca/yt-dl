@@ -1,6 +1,5 @@
 FROM python:3.10-slim
 
-# Install system dependencies including ffmpeg
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
     && rm -rf /var/lib/apt/lists/*
@@ -15,4 +14,4 @@ COPY . .
 ENV PORT=8080
 EXPOSE 8080
 
-CMD ["gunicorn", "--bind", "0.0.0.0:8080", "app:idempotent", "app:app", "--timeout", "120"]
+CMD ["gunicorn", "--bind", "0.0.0.0:8080", "app:app", "--timeout", "120"]
