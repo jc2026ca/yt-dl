@@ -63,11 +63,6 @@ def download():
     ydl_opts = {
         'outtmpl': os.path.join(tmp_dir, '%(title)s.%(ext)s'),
         'noplaylist': True,
-        'extractor_args': {
-            'youtube': {
-                'player_client': ['android', 'web']
-            }
-        }
     }
 
     if os.path.exists("cookies.txt"):
@@ -83,9 +78,8 @@ def download():
             }],
         })
     else:
-        # Let yt-dlp select the best available default stream without strict format constraints
         ydl_opts.update({
-            'format': 'b',
+            'format': 'best[ext=mp4]/best',
             'merge_output_format': 'mp4',
         })
 

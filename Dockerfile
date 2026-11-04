@@ -1,8 +1,15 @@
 FROM python:3.10-slim
 
+# Install system dependencies, ffmpeg, and curl for Deno
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
-    && rm -rf /var/lib/apt/lists/*
+    curl \
+    unzip \
+    && rm -rf /var/lib/apts/lists/*
+
+# Install Deno (required for YouTube signature/PO token challenges)
+RUN curl -fsSL https://deno.land/install.sh | sh
+ENV PATH="/root/.deno/bin:$PATH"
 
 WORKDIR /app
 
