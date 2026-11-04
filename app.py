@@ -63,18 +63,16 @@ def download():
 
     tmp_dir = tempfile.mkdtemp()
     
+    # Use ios and web_embedded client signatures to bypass cloud IP bot walls completely
     ydl_opts = {
         'outtmpl': os.path.join(tmp_dir, '%(title)s.%(ext)s'),
         'noplaylist': True,
         'extractor_args': {
             'youtube': {
-                'player_client': ['tv_downgraded', 'web', 'android_vr']
+                'player_client': ['ios', 'web_embedded', 'web']
             }
         }
     }
-
-    if os.path.exists("cookies.txt"):
-        ydl_opts['cookiefile'] = "cookies.txt"
 
     if fmt == "mp3":
         ydl_opts.update({
