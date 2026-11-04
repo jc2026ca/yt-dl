@@ -76,6 +76,7 @@ def download():
     if os.path.exists("cookies.txt"):
         ydl_opts['cookiefile'] = "cookies.txt"
 
+    # Robust universal format selectors that never throw "Requested format not available"
     if fmt == "mp3":
         ydl_opts.update({
             'format': 'bestaudio/best',
@@ -91,17 +92,17 @@ def download():
         })
     elif fmt == "1080p":
         ydl_opts.update({
-            'format': 'bestvideo[height<=1080][ext=mp4]+bestaudio[ext=m4a]/best[height<=1080][ext=mp4]/best',
+            'format': 'bestvideo[height<=1080]+bestaudio/best[height<=1080]/best',
             'merge_output_format': 'mp4',
         })
     elif fmt == "720p":
         ydl_opts.update({
-            'format': 'bestvideo[height<=720][ext=mp4]+bestaudio[ext=m4a]/best[height<=720][ext=mp4]/best',
+            'format': 'bestvideo[height<=720]+bestaudio/best[height<=720]/best',
             'merge_output_format': 'mp4',
         })
     else:  # best_mp4 default fallback
         ydl_opts.update({
-            'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
+            'format': 'bestvideo+bestaudio/best',
             'merge_output_format': 'mp4',
         })
 
