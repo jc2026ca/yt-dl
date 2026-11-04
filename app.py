@@ -1,65 +1,69 @@
 import os
 import tempfile
-from flask import Flask, request, send_file, render_template_string
+from flask import Flask, render_template_string, request, send_file
 import yt_dlp
 
 app = Flask(__name__)
 
-HTML_TEMPLATE = '''
-<!doctype html>
+HTML_TEMPLATE = """
+<!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="utf-8">
-    <title>Private YouTube Downloader</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Downloader</title>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 550px; margin: 80px auto; padding: 30px; background: #f9f9fb; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-        h2 { color: #1a1a1a; margin-top: 0; }
-        .form-group { margin-bottom: 20px; }
-        label { display: block; margin-bottom: 8px; font-weight: 600; color: #444; }
-        input[type="text"] { width: 100%; padding: 12px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 6px; font-size: 15px; }
-        .button-container { display: flex; gap: 12px; }
-        button { flex: 1; padding: 12px 20px; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; font-weight: 600; color: white; transition: background 0.2s; }
-        .btn-mp4 { background: #1a73e8; }
-        .btn-mp4:hover { background: #1557b0; }
-        .btn-mp3 { background: #34a853; }
-        .btn-mp3:hover { background: #2b8c44; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f4f4f9; color: #333; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .card { background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 450px; }
+        h2 { margin-top: 0; color: #111; text-align: center; }
+        label { display: block; margin-bottom: 0.5rem; font-weight: 600; }
+        input[type="text"], select { width: 100%; padding: 0.75rem; margin-bottom: 1.25rem; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; }
+        button { width: 100%; padding: 0.75rem; background: #ff0000; color: white; border: none; border-radius: 6px; font-size: 1rem; font-weight: bold; cursor: pointer; }
+        button:hover { background: #cc0000; }
+        .error { color: #d9534f; background: #f9eded; padding: 0.75rem; border-radius: 6px; margin-bottom: 1rem; font-size: 0.9rem; }
     </style>
 </head>
 <body>
-    <h2>YouTube Downloader</h2>
-    <form method="POST" action="/download">
-        <div class="form-group">
-            <label for="url">Paste YouTube URL:</label>
-            <input type="text" id="url" name="url" required placeholder="https://www.youtube.com/watch?v=...">
-        </div>
-        <div class="button-container">
-            <button type="submit" name="format" value="mp4" class="btn-mp4">Download MP4 (H.264)</button>
-            <button type="submit" name="format" value="mp3" class="btn-mp3">Download MP3</button>
-        </div>
-    </form>
+    <div class="card">
+        <h2>YouTube Downloader</h2>
+        {% if error %}
+            <div class="error">{{ error }}</div>
+        {% endif %}
+        <form method="POST" action="/download">
+            <label for="url">YouTube URL:</label>
+            <input type="text" id="url" name="url" placeholder="https://www.youtube.com/watch?v=..." required>
+            
+            <label for="format">Format:</label>
+            <select id="format" name="format">
+                <option value="mp4">MP4 (H.264 Video for MacBook)</option>
+                <option value="mp3">MP3 (Audio Only)</option>
+            </select>
+            
+            <button type="submit">Download</button>
+        </form>
+    </div>
 </body>
 </html>
-'''
+"""
 
-@app.route('/')
+@app.route("/", methods=["GET"])
 def index():
     return render_template_string(HTML_TEMPLATE)
 
-@app.route('/download', methods=['POST'])
-def download_file():
-    url = request.form.get('url')
-    format_type = request.form.get('format', 'mp4')
+@app.route("/download", methods=["POST"])
+def download():
+    url = request.form.get("url")
+    fmt = request.form.get("format")
 
     if not url:
-        return "Error: No URL provided", 400
+        return render_template_string(HTML_TEMPLATE, error="Please provide a valid YouTube URL.")
 
-    # Secure temporary directory for processing
     tmp_dir = tempfile.mkdtemp()
     
+    # Base options with cookies.txt and robust player clients
     ydl_opts = {
         'outtmpl': os.path.join(tmp_dir, '%(title)s.%(ext)s'),
         'noplaylist': True,
-        # Bypass bot detection by forcing alternative client players
         'extractor_args': {
             'youtube': {
                 'player_client': ['android', 'web']
@@ -67,7 +71,11 @@ def download_file():
         }
     }
 
-    if format_type == 'mp3':
+    # Attach cookies file if it exists in the root directory
+    if os.path.exists("cookies.txt"):
+        ydl_opts['cookiefile'] = "cookies.txt"
+
+    if fmt == "mp3":
         ydl_opts.update({
             'format': 'bestaudio/best',
             'postprocessors': [{
@@ -76,9 +84,10 @@ def download_file():
                 'preferredquality': '192',
             }],
         })
-    else:  # H.264 MP4 preference for local MacBook playback
+    else:
+        # Force H.264 video and AAC audio for seamless MacBook playback
         ydl_opts.update({
-            'format': 'bestvideo[vcodec^=avc1][ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
+            'format': 'bv*[ext=mp4][vcodec^=avc1]+ba[ext=m4a]/b[ext=mp4] / bv*+ba/b',
             'merge_output_format': 'mp4',
         })
 
@@ -87,15 +96,23 @@ def download_file():
             info = ydl.extract_info(url, download=True)
             filename = ydl.prepare_filename(info)
             
-            if format_type == 'mp3':
-                filename = os.path.splitext(filename)[0] + '.mp3'
-            elif not filename.endswith('.mp4'):
-                filename = os.path.splitext(filename)[0] + '.mp4'
+            if fmt == "mp3":
+                filename = os.path.splitext(filename)[0] + ".mp3"
+            elif not filename.endswith(".mp4"):
+                filename = os.path.splitext(filename)[0] + ".mp4"
 
-        return send_file(filename, as_attachment=True)
+            if not os.path.exists(filename):
+                # Fallback search in temp dir if filename resolution varies
+                files = os.listdir(tmp_dir)
+                if files:
+                    filename = os.path.join(tmp_dir, files[0])
+                else:
+                    raise Exception("Downloaded file could not be located.")
+
+            return send_file(filename, as_attachment=True)
+
     except Exception as e:
-        return f"An error occurred during download: {str(e)}", 500
+        return render_template_string(HTML_TEMPLATE, error=f"An error occurred during download: {str(e)}")
 
-if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 8080))
-    app.run(host='0.0.0.0', port=port)
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=8080)
